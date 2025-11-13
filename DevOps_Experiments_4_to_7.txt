@@ -1,0 +1,327 @@
+==============================
+🧪 EXPERIMENT 4 — CI/CD PIPELINE USING GITHUB ACTIONS & DOCKER HUB
+==============================
+🎯 OBJECTIVE:
+To create a Python app, test it using pytest, build and push the Docker image automatically via GitHub Actions.
+
+🧰 TOOLS REQUIRED:
+Python 3.x, GitHub, Docker, Docker Hub, VS Code, Web Browser
+
+==============================
+⚙️ STEP 1 — CREATE PROJECT FOLDER
+==============================
+mkdir python-ci-docker-lab && cd python-ci-docker-lab
+
+==============================
+⚙️ STEP 2 — CREATE APP FILE (app.py)
+==============================
+cat > app.py << 'EOF'
+def add(a, b):
+    return a + b
+
+if __name__ == "__main__":
+    print("Hello from Python CI/CD Lab!")
+    print("2 + 3 =", add(2, 3))
+EOF
+
+==============================
+⚙️ STEP 3 — CREATE TEST FILE
+==============================
+mkdir tests && cat > tests/test_app.py << 'EOF'
+from app import add
+def test_add():
+    assert add(2, 3) == 5
+    assert add(-1, 1) == 0
+EOF
+
+==============================
+⚙️ STEP 4 — CREATE REQUIREMENTS FILE
+==============================
+echo "pytest==8.3.2" > requirements.txt
+
+==============================
+⚙️ STEP 5 — CREATE DOCKERFILE
+==============================
+cat > Dockerfile << 'EOF'
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+CMD ["python", "app.py"]
+EOF
+
+==============================
+⚙️ STEP 6 — TEST LOCALLY
+==============================
+pytest -q
+docker build -t python-ci-lab .
+docker run --rm python-ci-lab
+
+==============================
+⚙️ STEP 7 — PUSH PROJECT TO GITHUB
+==============================
+git init && git add . && git commit -m "Initial CI/CD commit"
+git branch -M main
+git remote add origin https://github.com/<yourusername>/python-ci-docker-lab.git
+git push -u origin main
+
+==============================
+⚙️ STEP 8 — CREATE GITHUB ACTION WORKFLOW FILE
+==============================
+mkdir -p .github/workflows && cat > .github/workflows/ci-dockerhub.yml << 'EOF'
+name: CI-DockerHub
+on:
+  push:
+    branches: [ "main" ]
+jobs:
+  build-test-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      - name: Run tests
+        run: pytest -q
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/python-ci-lab:latest
+EOF
+
+==============================
+⚙️ STEP 9 — ADD GITHUB SECRETS
+==============================
+Add in GitHub → Settings → Secrets → Actions:
+DOCKERHUB_USERNAME = <yourusername>
+DOCKERHUB_TOKEN = <your Docker access token>
+
+==============================
+✅ RESULT:
+On code push, GitHub Actions tests the app, builds Docker image, and pushes to Docker Hub automatically.
+
+===================================================
+🧪 EXPERIMENT 5 — JENKINS DEPLOYMENT USING DOCKER
+===================================================
+🎯 OBJECTIVE:
+To deploy Jenkins using Docker and automate a simple static website pipeline.
+
+🧰 TOOLS REQUIRED:
+Docker, Docker Compose, Jenkins, VS Code, Web Browser
+
+==============================
+⚙️ STEP 1 — CREATE PROJECT FOLDER
+==============================
+mkdir jenkins-static-site && cd jenkins-static-site
+
+==============================
+⚙️ STEP 2 — CREATE DOCKER COMPOSE FILE
+==============================
+cat > docker-compose.yml << 'EOF'
+version: '3.8'
+services:
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: jenkins
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+volumes:
+  jenkins_home:
+EOF
+
+==============================
+⚙️ STEP 3 — START JENKINS
+==============================
+docker compose up -d
+
+==============================
+⚙️ STEP 4 — GET ADMIN PASSWORD
+==============================
+docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+
+==============================
+⚙️ STEP 5 — ACCESS JENKINS DASHBOARD
+==============================
+Open http://localhost:8080 → enter password → install suggested plugins → create admin user
+
+==============================
+⚙️ STEP 6 — CREATE PIPELINE SCRIPT
+==============================
+cat > pipeline.groovy << 'EOF'
+pipeline {
+    agent any
+    stages {
+        stage('Generate Site') {
+            steps {
+                script {
+                    sh 'mkdir -p site'
+                    writeFile file: 'site/index.html', text: '<h1>Welcome to Jenkins Static Site 🚀</h1>'
+                }
+            }
+        }
+        stage('Publish Site') {
+            steps {
+                publishHTML(target: [
+                    reportDir: 'site',
+                    reportFiles: 'index.html',
+                    reportName: 'Static Website'
+                ])
+            }
+        }
+    }
+}
+EOF
+
+==============================
+⚙️ STEP 7 — RUN PIPELINE IN JENKINS
+==============================
+Build pipeline and view published site in Jenkins.
+
+==============================
+✅ RESULT:
+Jenkins container deployed via Docker automates site creation and HTML publishing.
+
+===================================================
+🧪 EXPERIMENT 6 — NGINX STATIC WEBSITE USING DOCKER
+===================================================
+🎯 OBJECTIVE:
+To create and host a static web page using Docker and Nginx.
+
+🧰 TOOLS REQUIRED:
+Docker, VS Code, Web Browser
+
+==============================
+⚙️ STEP 1 — CREATE PROJECT FOLDER
+==============================
+mkdir nginx-webapp && cd nginx-webapp
+
+==============================
+⚙️ STEP 2 — CREATE INDEX.HTML
+==============================
+cat > index.html << 'EOF'
+<!DOCTYPE html>
+<html>
+<head><title>Nginx Docker Website</title></head>
+<body style="text-align:center;padding-top:100px;font-family:Arial;">
+<h1>Hello from Nginx + Docker!</h1><p>Static site inside a container 🐳</p>
+</body>
+</html>
+EOF
+
+==============================
+⚙️ STEP 3 — CREATE DOCKERFILE
+==============================
+cat > Dockerfile << 'EOF'
+FROM nginx:latest
+COPY index.html /usr/share/nginx/html/index.html
+EXPOSE 80
+EOF
+
+==============================
+⚙️ STEP 4 — BUILD AND RUN CONTAINER
+==============================
+docker build -t nginx-webapp:v1 .
+docker run -d -p 8080:80 nginx-webapp:v1
+
+==============================
+✅ RESULT:
+Static HTML page hosted successfully on Nginx Docker container.
+
+===================================================
+🧪 EXPERIMENT 7 — MULTI-CONTAINER WEB APP USING DOCKER COMPOSE
+===================================================
+🎯 OBJECTIVE:
+To deploy a multi-container web application using Flask and Redis via Docker Compose.
+
+🧰 TOOLS REQUIRED:
+Python, Flask, Redis, Docker, Docker Compose
+
+==============================
+⚙️ STEP 1 — CREATE PROJECT FOLDER
+==============================
+mkdir flask-redis-app && cd flask-redis-app
+
+==============================
+⚙️ STEP 2 — CREATE FLASK APP (app.py)
+==============================
+cat > app.py << 'EOF'
+from flask import Flask
+from redis import Redis
+
+app = Flask(__name__)
+redis = Redis(host='redis', port=6379)
+
+@app.route('/')
+def hello():
+    redis.incr('hits')
+    count = redis.get('hits').decode('utf-8')
+    return f"<h1>Hello from Flask + Redis 🚀</h1><p>Visited {count} times.</p>"
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
+EOF
+
+==============================
+⚙️ STEP 3 — CREATE REQUIREMENTS
+==============================
+echo "flask
+redis" > requirements.txt
+
+==============================
+⚙️ STEP 4 — CREATE DOCKERFILE
+==============================
+cat > Dockerfile << 'EOF'
+FROM python:3.9-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+CMD ["python", "app.py"]
+EOF
+
+==============================
+⚙️ STEP 5 — CREATE DOCKER-COMPOSE FILE
+==============================
+cat > docker-compose.yml << 'EOF'
+version: "3.8"
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    depends_on:
+      - redis
+  redis:
+    image: redis:alpine
+EOF
+
+==============================
+⚙️ STEP 6 — BUILD AND RUN
+==============================
+docker compose up -d
+
+==============================
+⚙️ STEP 7 — TEST APP
+==============================
+Open browser → http://localhost:5000
+
+==============================
+✅ RESULT:
+Flask + Redis multi-container web app deployed successfully using Docker Compose.
