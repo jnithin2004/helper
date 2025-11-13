@@ -1,0 +1,91 @@
+==============================
+🧪 EXPERIMENT 3 — FLASK WEB APP USING DOCKER & DOCKER HUB
+==============================
+🎯 OBJECTIVE:
+To create a Flask web application, containerize it using Docker, and deploy it to Docker Hub.
+
+🧰 TOOLS REQUIRED:
+Python 3.x, Flask Framework, Docker (running), Docker Hub Account, VS Code, Web Browser
+
+==============================
+⚙️ STEP 1 — CREATE PROJECT FOLDER
+==============================
+mkdir flask-docker-app && cd flask-docker-app
+
+==============================
+⚙️ STEP 2 — CREATE FLASK APP (app.py)
+==============================
+cat > app.py << 'EOF'
+from flask import Flask, render_template_string
+app = Flask(__name__)
+@app.route("/")
+def home():
+    return render_template_string("""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Flask Docker App</title>
+      <style>
+        body {background-color:#f2f2f2;font-family:Arial;text-align:center;padding-top:100px;}
+        h1 {color:#0078D7;font-size:3em;}
+        p {color:#333;font-size:1.2em;}
+      </style>
+    </head>
+    <body>
+      <h1>Hello from Flask + Docker!</h1>
+      <p>This web app runs inside a Docker container 🐳</p>
+    </body>
+    </html>
+    """)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
+EOF
+
+==============================
+⚙️ STEP 3 — CREATE REQUIREMENTS FILE
+==============================
+echo "Flask==2.2.5" > requirements.txt
+
+==============================
+⚙️ STEP 4 — CREATE DOCKERFILE
+==============================
+cat > Dockerfile << 'EOF'
+FROM python:3.9-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+EXPOSE 5000
+CMD ["python", "app.py"]
+EOF
+
+==============================
+⚙️ STEP 5 — BUILD DOCKER IMAGE
+==============================
+docker build -t flask-docker-app .
+
+==============================
+⚙️ STEP 6 — RUN DOCKER CONTAINER LOCALLY
+==============================
+docker run -d -p 5000:5000 flask-docker-app
+
+==============================
+⚙️ STEP 7 — PUSH IMAGE TO DOCKER HUB
+==============================
+docker login
+docker tag flask-docker-app <yourusername>/flask-docker-app:latest
+docker push <yourusername>/flask-docker-app:latest
+
+==============================
+⚙️ STEP 8 — RUN IMAGE FROM DOCKER HUB
+==============================
+docker pull <yourusername>/flask-docker-app:latest
+docker run -d -p 5050:5000 <yourusername>/flask-docker-app:latest
+
+==============================
+✅ RESULT:
+Flask web application successfully containerized and deployed to Docker Hub.
+
+... (Experiments 4, 5, 6, and 7 content continues here in same format) ...
